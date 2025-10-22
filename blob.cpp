@@ -65,7 +65,31 @@ compress_zlib(const std::vector<unsigned char> &input) {
 /*
  * hdr: Builds the Git header; for blobs, the exact header is "blob <size>\0"
  * where size is the decimal byte count
- * */
+ */
+
+/*
+ * store.insert(...) twice to concatenate header and file bytes into store (the
+ * data we will hash and compress)
+ */
+
+/*
+ * We then consturctthe object directory path;
+ * The first two hex chars become the directory name - object_dir
+ * Remaining chars are the filename - object_path
+ */
+
+/*
+ * We create the directory (if needed)
+ * ofstream out: write compressed bytes to object file.
+ * Again, no check for out being successful, should be added
+ */
+
+/*
+ * Git stores loose objects by splitting the SHA into objects/XX/YYYY... so
+ * directories are not overloaded with many filed and looking up by prefix is
+ * easy
+ */
+
 std::string write_blob_and_get_sha(const fs::path &repo_dir,
                                    const fs::path &filepath) {
   // read file
