@@ -26,7 +26,8 @@ std::string trim(std::string s) {
 
 void script(FileBrowser &browser) {
   std::cout << "[Q] to quit selection.\n[U] to go up tree.\n[D#] to remove "
-               "from selected files.\n[#] to select file/directory.\n\n\n";
+               "from selected files.\n[#] to select file/directory.\n[M] to "
+               "save files\n\n\n";
   browser.printPath();
   std::cout << "\n\n\n";
   browser.printSelected();
@@ -41,6 +42,7 @@ void og_script(FileBrowser &browser) {
 }
 
 int main() {
+  clearScreen();
   fs::path rootDir = fs::current_path();
   FileBrowser browser(rootDir);
 
@@ -108,6 +110,7 @@ int main() {
   Internals ints(dir);
 
   // Initial run of file-system
+  clearScreen();
   script(setup);
 
   std::string input;
@@ -124,6 +127,12 @@ int main() {
       clearScreen();
       script(setup);
       continue;
+    } else if (s == "m") {
+      std::string message;
+      std::cout << "Write your message: \n";
+      ints.objectify(message);
+      clearScreen();
+      script(setup);
     } else if (s == "q") {
       break;
     } else if (s == "d") {
