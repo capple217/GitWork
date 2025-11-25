@@ -1,6 +1,8 @@
 #include "git-maker.hpp"
 #include "hash.hpp"
 
+#include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -148,20 +150,11 @@ std::string Internals::fileOrdering(const fs::path &path) {
           // objects folder if there already exists this file, we can skip this
           // step
 
-          bool exists = false;
           std::string new_file = hash + ".txt";
-          for (const auto &entry : fs::directory_iterator(_objects)) {
-            if (entry.path().filename() == new_file) {
-              exists = true;
-              break;
-            }
-          }
 
-          if (!exists) {
-            fs::path new_dest(_objects / new_file);
-            fs::copy_file(entry.path(), new_dest,
-                          fs::copy_options::skip_existing);
-          }
+          fs::path new_dest(_objects / new_file);
+          fs::copy_file(entry.path(), new_dest,
+                        fs::copy_options::skip_existing);
         }
       }
     }
@@ -179,19 +172,10 @@ std::string Internals::fileOrdering(const fs::path &path) {
   std::string file_contents(std::istreambuf_iterator<char>(file), {});
   auto hash = sha1_hex(file_contents);
 
-  bool exists = false;
   std::string new_file = hash + ".txt";
-  for (const auto &entry : fs::directory_iterator(_objects)) {
-    if (entry.path().filename() == new_file) {
-      exists = true;
-      break;
-    }
-  }
 
-  if (!exists) {
-    fs::path new_dest(_objects / new_file);
-    fs::copy_file(file_path, new_dest, fs::copy_options::skip_existing);
-  }
+  fs::path new_dest(_objects / new_file);
+  fs::copy_file(file_path, new_dest, fs::copy_options::skip_existing);
 
   file.close();
   fs::remove(file_path);
@@ -200,6 +184,49 @@ std::string Internals::fileOrdering(const fs::path &path) {
   return hash;
 }
 
+// First have all these files stored into objects (whichever ones are updated)
+// THen take the commit message and create the unique commit object and also
+// store in objects
+//
+// This version does NOT have a staging area so we just use _dir, but in updated
+// versions, we will incorporate that and update this
 void Internals::objectify(std::string message) {
-  //
+
+  auto hash = fileOrdering(_dir);
+
+  // time
+  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
+  // final file
+  std::string file_path = _dir / "message.txt";
+  std::ofstream temp_file(file_path);
+  if (!temp_file.is_open()) {
+    std::cout << "Error in opening commit message file.\n";
+  }
+
+  temp_file << "Time: " << std::ctime(&now_c) << std::endl;
+  temp_file << "Hash: " << hash << std::endl;
+  temp_file << "Message: " << message << std::endl;
+
+  // We dont have others like tree hash set up but will also update that soon
+  // enough
+
+  temp_file.close();
+
+  // Get hash of this
+  std::ifstream file(file_path);
+  if (!file.is_open()) {
+    std::cout << "Failure to open file to get hash for commit message.\n";
+  }
+  std::string file_contents(std::istreambuf_iterator<char>(file), {});
+  auto new_name = sha1_hex(file_contents);
+
+  std::string new_file = new_name + ".txt";
+
+  fs::path new_dest(_objects / new_file);
+  fs::copy_file(file_path, new_file, fs::copy_options::skip_existing);
+
+  file.close();
+  fs::remove(file_path);
 }
