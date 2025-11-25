@@ -12,7 +12,7 @@
 
 namespace fs = std::filesystem;
 
-std::string sha1_hex(const std::vector<unsigned char> &data);
+std::string sha1_hex(const std::string &data);
 
 std::vector<unsigned char>
 compress_zlib(const std::vector<unsigned char> &input);

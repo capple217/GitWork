@@ -12,12 +12,14 @@ namespace fs = std::filesystem;
  * For more serious developments on this project, SHA-256 or multiple algorithms
  * will be beneficial
  */
-std::string sha1_hex(const std::vector<unsigned char> &data) {
+std::string sha1_hex(const std::string &data) {
   unsigned char hash[SHA_DIGEST_LENGTH];
-  SHA1(data.data(), data.size(), hash);
+  SHA1(reinterpret_cast<const unsigned char *>(data.c_str()), data.length(),
+       hash);
   std::ostringstream ss;
   for (int i = 0; i < SHA_DIGEST_LENGTH; ++i) {
-    ss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    ss << std::hex << std::setw(2) << std::setfill('0')
+       << static_cast<int>(hash[i]);
   }
 
   return ss.str();
@@ -33,6 +35,7 @@ std::string sha1_hex(const std::vector<unsigned char> &data) {
  * We don't get a specific error detail, we throw a generic runtime_error
  * We could map zlib error codes and include messages
  */
+/*
 std::vector<unsigned char>
 compress_zlib(const std::vector<unsigned char> &input) {
   uLongf destLen = compressBound(input.size());
@@ -43,7 +46,7 @@ compress_zlib(const std::vector<unsigned char> &input) {
   out.resize(destLen);
   return out;
 }
-
+*/
 /*
  * ifstream: open the file in binary mode for reading. No error check, we should
  * check if (!in) and throw an error
@@ -81,7 +84,7 @@ compress_zlib(const std::vector<unsigned char> &input) {
  * directories are not overloaded with many filed and looking up by prefix is
  * easy
  */
-
+/*
 std::string write_blob_and_get_sha(const fs::path &repo_dir,
                                    const fs::path &filepath) {
   // read file
@@ -106,3 +109,4 @@ std::string write_blob_and_get_sha(const fs::path &repo_dir,
             compressed.size());
   return sha;
 }
+*/

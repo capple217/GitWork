@@ -1,8 +1,10 @@
 #include "git-maker.hpp"
+#include "hash.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <stdexcept>
 
 /*
@@ -12,7 +14,7 @@
  *
  * This is for git init SO we we just use the name of the parent directory
  * */
-Internals::Internals(const fs::path &path) {
+Internals::Internals(const fs::path &path) : _dir{path} {
 
   // Checks if we already are inside of a gitwork directory
   // If so, we do fill our class information using the provided
@@ -21,14 +23,14 @@ Internals::Internals(const fs::path &path) {
   bool exists = false;
   for (const auto &entry : fs::directory_iterator{path.parent_path()}) {
     if (entry.path().filename() == ".gitwork") {
-      _dir = entry.path();
+      _git = entry.path();
       exists = true;
     }
   }
 
   // Should add more error checks
   if (!exists) {
-    _dir = path / ".gitwork";
+    _git = path / ".gitwork";
     fs::create_directory(_dir);
   }
 
@@ -67,7 +69,7 @@ Internals::Internals(const fs::path &path) {
     }
   }
 
-  // Hopefully, the subdirectory(ies) are made properly
+  // May add more sub-directories here
   if (!exists) {
     _refs = _dir / "refs";
     fs::create_directory(_refs);
@@ -116,16 +118,88 @@ Internals::Internals(const fs::path &path) {
   }
 }
 
-// WE will also create a constructor without name where we check existance
-// in the main function
+// Trying without error checks to first test functionality
+// need to add safety nets soon after
+//
+// This methodology is one I interpreted from The Git Parable.
+// Future versions of this program may change this function
+std::string Internals::fileOrdering(const fs::path &path) {
+  // Create temp file
+  std::string file_path = path.string() + "data.text";
+  std::ofstream temp_file(file_path);
+  if (temp_file.is_open()) {
+    for (const auto &entry : fs::directory_iterator(path)) {
+      if (entry.is_directory()) {
+        auto sha = fileOrdering(entry.path());
+        temp_file << "tree " << sha << " " << entry.path().filename()
+                  << std::endl;
+      } else {
+        // need to make sure this is path for the file
+        std::string source = entry.path().filename().string();
+        std::ifstream file(source);
+        if (file.is_open()) { // Kinda need this error check
+          std::string file_contents(std::istreambuf_iterator<char>(file),
+                                    {}); // Absorb all of the file and hash it
+          auto hash = sha1_hex(file_contents);
+          temp_file << "blob " << hash << " " << entry.path().filename()
+                    << std::endl;
 
-/* Will be throwing this into main so that
- * our code here can just worry about the name and internals being set up
- *
- *
-  if (!fs::is_directory(path) || !fs::exists(path)) {
-    throw std::invalid_argument("Invalid Path.");
+          // rename the source file into the hash and try to move it to the
+          // objects folder if there already exists this file, we can skip this
+          // step
+
+          bool exists = false;
+          std::string new_file = hash + ".txt";
+          for (const auto &entry : fs::directory_iterator(_objects)) {
+            if (entry.path().filename() == new_file) {
+              exists = true;
+              break;
+            }
+          }
+
+          if (!exists) {
+            fs::path new_dest(_objects / new_file);
+            fs::copy_file(entry.path(), new_dest,
+                          fs::copy_options::skip_existing);
+          }
+        }
+      }
+    }
+
+    temp_file.close();
   }
- *
- *
- */
+
+  // Same as above, try to paste this temp file into objects with the hash as
+  // it's name only if it doesn't exist already
+
+  std::ifstream file(file_path);
+  if (!file.is_open()) {
+    std::cout << "error at the end of analyzing and deleting temp file.\n";
+  }
+  std::string file_contents(std::istreambuf_iterator<char>(file), {});
+  auto hash = sha1_hex(file_contents);
+
+  bool exists = false;
+  std::string new_file = hash + ".txt";
+  for (const auto &entry : fs::directory_iterator(_objects)) {
+    if (entry.path().filename() == new_file) {
+      exists = true;
+      break;
+    }
+  }
+
+  if (!exists) {
+    fs::path new_dest(_objects / new_file);
+    fs::copy_file(file_path, new_dest, fs::copy_options::skip_existing);
+  }
+
+  file.close();
+  fs::remove(file_path);
+  // No longer need the temp file we made
+
+  return hash;
+}
+
+void Internals::objectify(std::string message) {
+  //
+}
