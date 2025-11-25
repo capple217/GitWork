@@ -70,6 +70,7 @@ Internals::Internals(const fs::path &path) {
   // Hopefully, the subdirectory(ies) are made properly
   if (!exists) {
     _refs = _dir / "refs";
+    fs::create_directory(_refs);
     fs::create_directory(_refs / "heads");
   }
 

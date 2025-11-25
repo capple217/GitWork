@@ -1,4 +1,5 @@
 #include "fileSystem.hpp"
+#include "git-maker.hpp"
 #include "hash.hpp"
 #include <algorithm>
 #include <cctype>
@@ -8,6 +9,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 // Need to update main to test blob and SHA
 void clearScreen() { std::cout << "\033[2J\033[1;1H" << std::flush; }
@@ -30,31 +32,102 @@ void script(FileBrowser &browser) {
   browser.printSelected();
 }
 
+void og_script(FileBrowser &browser) {
+  std::cout
+      << "Choose path to initialize or return to.\n[Q] to quit selection.\n[U] "
+         "to go up tree.\n[#] to select directory.\n[G] to solidify "
+         "location.\n";
+  browser.printPath();
+}
+
 int main() {
   fs::path rootDir = fs::current_path();
   FileBrowser browser(rootDir);
 
+  fs::path dir = rootDir;
+
+  // Choose init location
+  og_script(browser);
+  std::string og_input;
+  while (std::getline(std::cin, og_input)) {
+    clearScreen();
+    og_script(browser);
+    std::string t = trim(og_input);
+
+    std::transform(t.begin(), t.end(), t.begin(), ::tolower);
+
+    if (t == "q") {
+      // Breaks code for now
+      return 0;
+      break;
+    } else if (t == "u") {
+      browser.upTree();
+      clearScreen();
+      og_script(browser);
+      continue;
+    } else if (t == "g") {
+      if (!fs::is_directory(browser.current()) ||
+          !fs::exists(browser.current())) {
+        std::cout << "[!] Invalid path for init.\n";
+      }
+      dir = browser.current();
+      break;
+    } else {
+      std::stringstream tt(t);
+      int t_val;
+      char t_leftover;
+      if (tt >> t_val && !(tt >> t_leftover)) {
+        if (t_val < 0 || t_val >= browser.numPaths()) {
+          std::cout << "[!] Out of bounds for init.\n";
+        }
+
+        browser.selectChild(t_val);
+        clearScreen();
+        og_script(browser);
+      } else {
+        std::cout << "[!] Invalid input init.\n";
+      }
+    }
+  }
+
+  // intentional gap
+  // Temporary
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+  //
+
+  // NEW GIT ENVIRONMENT SET UP
+  FileBrowser setup(dir);
+  Internals ints(dir);
+
   // Initial run of file-system
-  script(browser);
+  script(setup);
 
   std::string input;
   while (std::getline(std::cin, input)) {
     clearScreen();
-    script(browser);
+    script(setup);
     std::string s = trim(input);
 
     // normalize to lower-case
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
 
     if (s == "u") {
-      browser.upTree();
+      setup.upTree();
       clearScreen();
-      script(browser);
+      script(setup);
       continue;
     } else if (s == "q") {
       break;
     } else if (s == "d") {
-      if (browser.numSel() == 0) {
+      if (setup.numSel() == 0) {
         std::cout << "Nothing to delete...\n";
       }
       std::cout << "Choose the row to delete: ";
@@ -66,15 +139,15 @@ int main() {
       int val;
       char leftover;
       if (ss >> val && !(ss >> leftover)) {
-        if (val < 1 || val > browser.numSel()) {
+        if (val < 1 || val > setup.numSel()) {
           std::cout << "[!] Out of bounds selected.\n";
         }
 
-        browser.deleteSelected(val);
+        setup.deleteSelected(val);
         // The 1-indexedness is fixed in the function
 
         clearScreen();
-        script(browser);
+        script(setup);
         continue;
       } else {
         std::cout << "[!] Invalid input2.\n";
@@ -87,14 +160,14 @@ int main() {
       int val;
       char leftover;
       if (ss >> val && !(ss >> leftover)) {
-        if (val < 0 || val >= browser.numPaths()) {
+        if (val < 0 || val >= setup.numPaths()) {
           std::cout << "[!] Out of bounds.\n";
         }
 
         // pick path or file work
-        browser.selectChild(val);
+        setup.selectChild(val);
         clearScreen();
-        script(browser);
+        script(setup);
 
       } else {
         std::cout << "[!] Invalid input1.\n";
