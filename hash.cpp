@@ -1,12 +1,4 @@
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <iterator>
-#include <openssl/sha.h>
-#include <sstream>
-#include <vector>
-#include <zlib.h>
+#include "hash.hpp"
 
 namespace fs = std::filesystem;
 
