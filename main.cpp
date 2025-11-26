@@ -30,7 +30,8 @@ void script(FileBrowser &browser) {
   std::cout << "---- GITWORK ----\n";
   std::cout << "[Q] to quit selection.\n[U] to go up tree.\n"
                "[#] to select file/directory.\n[M] to "
-               "save files\n[X] to delete repository.\n\n\n";
+               "save our staged files\n[X] to delete repository.\n[S] to stage "
+               "changes.\n\n\n";
   browser.printPath();
   std::cout << "\n\n\n";
 }
@@ -61,6 +62,7 @@ fs::path fileExplorer(const fs::path &path) {
       gitWorker(p);
       continue;
     }
+
     if (t == "q") {
       // Breaks code for now
       break;
@@ -135,7 +137,21 @@ void gitWorker(fs::path &path) {
       break;
     }
 
+    else if (s == "s") {
+      // For now, if we stage, we will get rid of any stage that
+      // there already exists
+      //
+      // Want to add some more interface dynamics/visuals to show this action
+      // was successful
+      ints.stage();
+      continue;
+    }
+
     else if (s == "m") {
+      if (!ints.isStageFull()) {
+        continue;
+        std::cout << "No files staged to be commited.\n";
+      }
       std::string message;
       std::cout << "Write your message: \n";
       ints.objectify(message);

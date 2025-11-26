@@ -81,6 +81,9 @@ std::string Internals::fileOrdering(const fs::path &path) {
   std::ofstream temp_file(file_path);
   if (temp_file.is_open()) {
     for (const auto &entry : fs::directory_iterator(path)) {
+      // Don't want to save our gitwork files
+      if (entry.path().filename() == ".gitwork")
+        continue;
       if (entry.is_directory()) {
         auto sha = fileOrdering(entry.path());
         temp_file << "tree " << sha << " " << entry.path().filename()
@@ -142,7 +145,9 @@ std::string Internals::fileOrdering(const fs::path &path) {
 // versions, we will incorporate that and update this
 void Internals::objectify(std::string message) {
 
-  auto hash = fileOrdering(_dir);
+  std::ifstream index(_indexFile);
+  std::string hash((std::istreambuf_iterator<char>(index)),
+                   std::istreambuf_iterator<char>());
 
   // time
   std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -185,3 +190,17 @@ void Internals::objectify(std::string message) {
 // When we start incorporating network stuff,
 // it may get more interseting
 Internals::~Internals() { fs::remove_all(_git); }
+
+// Have a hash that we can follow the path of
+// Any existing stages are currently forcefully overwritten
+void Internals::stage() {
+
+  auto hash = fileOrdering(_dir);
+  std::ofstream file(_indexFile, std::ofstream::out | std::ofstream::trunc);
+  if (!file.is_open()) {
+    std::cerr << "Unable to open file to stage.\n";
+  }
+
+  file << hash << std::endl;
+  _stageFullness = true;
+}
