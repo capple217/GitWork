@@ -164,6 +164,14 @@ void Internals::objectify(std::string message) {
   temp_file << "Time: " << std::ctime(&now_c) << std::endl;
   temp_file << "Hash: " << hash << std::endl;
   temp_file << "Message: " << message << std::endl;
+  if (!_rootCommit) {
+    std::ifstream tree(_branchCurr);
+    if (!tree.is_open()) {
+      std::cout << "Error opening file for commit parents.\n";
+    }
+    std::string treeHash(std::istreambuf_iterator<char>(tree), {});
+    temp_file << "Parent: " << treeHash << std::endl;
+  }
 
   // We dont have others like tree hash set up but will also update that soon
   // enough
@@ -185,6 +193,8 @@ void Internals::objectify(std::string message) {
 
   file.close();
   fs::remove(file_path);
+  newTip(hash);
+  _rootCommit = false;
 }
 
 // For now, this destructor is simple
@@ -216,9 +226,12 @@ void Internals::createBranch(std::string name = "main") {
   }
 
   std::string new_file = name + ".txt";
-  fs::create_directory(_refsHeads / new_file);
-  _branchNames.push_back(name);
-  chooseBranch(name);
+  std::string path = _refsHeads / new_file;
+  std::ofstream file(path);
+  if (file.is_open())
+    file.close();
+  _branchNames.push_back(path);
+  chooseBranch(path);
 }
 
 // Error checks will be done outside
@@ -226,5 +239,18 @@ void Internals::createBranch(std::string name = "main") {
 void Internals::chooseBranch(fs::path path) {
 
   std::ofstream file(_headFile, std::ofstream::out | std::ofstream::trunc);
-  file << "ref: " << path.string() << std::endl;
+  file << path.string() << std::endl;
+  _branchCurr = path;
+  file.close();
+}
+
+// Whenever we commit something, it is always gonna be at the tip of a branch
+void Internals::newTip(std::string hash) {
+  std::ofstream file(_branchCurr, std::ofstream::out | std::ofstream::trunc);
+  if (!file.is_open()) {
+    std::cout << "Unable to open file to create new branch tip.\n";
+  }
+
+  file << hash << std::endl;
+  file.close();
 }

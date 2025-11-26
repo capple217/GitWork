@@ -29,6 +29,7 @@ public:
   void stage();
   bool isStageFull() { return _stageFullness; }
 
+  void newTip(std::string hash);
   void createBranch(std::string name);
   void chooseBranch(fs::path path);
 
@@ -38,12 +39,15 @@ private:
 
   fs::path _objects; //
 
+  bool _rootCommit = true;
   std::vector<fs::path> _branchNames;
   fs::path _refsHeads;
   fs::path _refs; // Master branch containing {heads: tips/ leafs of branches,
                   // tags: important snapshots to remember}
-  fs::path _headFile;  // Pointing to the current branch / cmmit
-  fs::path _indexFile; // Staging area binary
+  fs::path _headFile;   // Pointing to the current branch / cmmit
+  fs::path _indexFile;  // Staging area binary
+  fs::path _branchCurr; // TEMP file that keeps info of _headFile for
+                        // convencience when pulling information
 
   bool _stageFullness = false;
 };
