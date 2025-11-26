@@ -16,25 +16,15 @@
  *
  * This is for git init SO we we just use the name of the parent directory
  * */
-Internals::Internals(const fs::path &path) : _dir{path} {
+Internals::Internals(fs::path &path) : _dir{path} {
 
   // Checks if we already are inside of a gitwork directory
   // If so, we do fill our class information using the provided
   // paths and filling in missing areas with new directories
 
-  bool exists = false;
-  for (const auto &entry : fs::directory_iterator{path.parent_path()}) {
-    if (entry.path().filename() == ".gitwork") {
-      _git = entry.path();
-      exists = true;
-    }
-  }
-
   // Should add more error checks
-  if (!exists) {
-    _git = path / ".gitwork";
-    fs::create_directory(_dir);
-  }
+  fs::create_directory(path / ".gitwork");
+  _git = path / ".gitwork";
 
   // Everyime we add a new file within our .gitwork, we have to make sure
   // it doesn't already exist. If it does, then we do nothing to it.
@@ -45,79 +35,39 @@ Internals::Internals(const fs::path &path) : _dir{path} {
   // product is fine.
 
   // OBJECTS
-  exists = false;
-  for (const auto &entry : fs::directory_iterator{_dir}) {
-    if (entry.path().filename() == "objects") {
-      _objects = entry.path();
-      exists = true;
-    }
-  }
-
   // Again, potential error checks, etc. Will keep adding these
-  if (!exists) {
-    _objects = _dir / "objects";
-    fs::create_directory(_objects);
-  }
+  fs::create_directory(_git / "objects");
+  _objects = _git / "objects";
 
   // REFS
   // For this case, if we only have an existing refs directory but no
   // proper files inside, we will NOT replace them. Potential improvement
   // to be made later on but sub-files are important here
-  exists = false;
-  for (const auto &entry : fs::directory_iterator{_dir}) {
-    if (entry.path().filename() == "refs") {
-      _refs = entry.path();
-      exists = true;
-    }
-  }
 
   // May add more sub-directories here
-  if (!exists) {
-    _refs = _dir / "refs";
-    fs::create_directory(_refs);
-    fs::create_directory(_refs / "heads");
-  }
+  _refs = _git / "refs";
+  fs::create_directory(_refs);
+  fs::create_directory(_refs / "heads");
 
   // HEAD
   // TEXT FILE
-  exists = false;
-  for (const auto &entry : fs::directory_iterator{_dir}) {
-    if (!entry.is_directory() && entry.path().filename() == "HEAD") {
-      _headFile = entry.path();
-      exists = true;
-    }
-  }
 
-  if (!exists) {
-    _headFile = _dir / "HEAD.txt";
-    std::ofstream output_file(_headFile);
+  _headFile = _git / "HEAD.txt";
+  std::ofstream output_file(_headFile);
 
-    // No need to write in it for now
-    if (output_file.is_open())
-      output_file.close();
-  }
+  // No need to write in it for now
+  if (output_file.is_open())
+    output_file.close();
 
   // INDEX
   // TEXT FILE
-  exists = false;
-  for (const auto &entry : fs::directory_iterator{_dir}) {
-    // need to be careful with this first if condition to know we're
-    // checking if this PATH is a directory or if I'm accidentally
-    // reviewing an iterator somehow
-    if (!entry.is_directory() && entry.path().filename() == "index") {
-      _indexFile = entry.path();
-      exists = true;
-    }
-  }
 
-  if (!exists) {
-    _indexFile = _dir / "index.txt";
-    std::ofstream out_file(_indexFile);
+  _indexFile = _git / "index.txt";
+  std::ofstream out_file(_indexFile);
 
-    // No need to write in it for now
-    if (out_file.is_open())
-      out_file.close();
-  }
+  // No need to write in it for now
+  if (out_file.is_open())
+    out_file.close();
 }
 
 // Trying without error checks to first test functionality
@@ -230,3 +180,8 @@ void Internals::objectify(std::string message) {
   file.close();
   fs::remove(file_path);
 }
+
+// For now, this destructor is simple
+// When we start incorporating network stuff,
+// it may get more interseting
+Internals::~Internals() { fs::remove_all(_git); }

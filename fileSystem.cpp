@@ -62,18 +62,10 @@ void FileBrowser::selectChild(size_t idx) {
     return;
   }
 
-  if (fs::is_regular_file(_children[idx])) {
-    // No need for duplicate entries
-    if (std::find(_selected.begin(), _selected.end(), _children[idx]) !=
-        _selected.end())
-      return;
-
-    _selected.push_back(_children[idx]);
-  } else {
-    _current = _children[idx];
-  }
+  _current = _children[idx];
 }
 
+// Currently unused function, may be deleted
 void FileBrowser::printSelected() {
   std::cout << "---- SELECTED ----\n";
   for (size_t i = 0; i < _selected.size(); ++i) {

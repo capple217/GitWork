@@ -25,12 +25,11 @@ std::string trim(std::string s) {
 }
 
 void script(FileBrowser &browser) {
-  std::cout << "[Q] to quit selection.\n[U] to go up tree.\n[D#] to remove "
-               "from selected files.\n[#] to select file/directory.\n[M] to "
-               "save files\n\n\n";
+  std::cout << "[Q] to quit selection.\n[U] to go up tree.\n"
+               "[#] to select file/directory.\n[M] to "
+               "save files\n[X] to delete repository.\n\n\n";
   browser.printPath();
   std::cout << "\n\n\n";
-  browser.printSelected();
 }
 
 void og_script(FileBrowser &browser) {
@@ -43,7 +42,8 @@ void og_script(FileBrowser &browser) {
 
 int main() {
   clearScreen();
-  fs::path rootDir = fs::current_path();
+  fs::path rootDir = fs::current_path(); // Can add functioality later to have a
+                                         // better start position
   FileBrowser browser(rootDir);
 
   fs::path dir = rootDir;
@@ -127,41 +127,21 @@ int main() {
       clearScreen();
       script(setup);
       continue;
-    } else if (s == "m") {
+    } else if (s == "x") {
+      ints.~Internals();
+      clearScreen();
+      break;
+    }
+
+    else if (s == "m") {
       std::string message;
       std::cout << "Write your message: \n";
       ints.objectify(message);
       clearScreen();
       script(setup);
     } else if (s == "q") {
+
       break;
-    } else if (s == "d") {
-      if (setup.numSel() == 0) {
-        std::cout << "Nothing to delete...\n";
-      }
-      std::cout << "Choose the row to delete: ";
-      std::string input2;
-      std::cin >> input2;
-      s = trim(input2);
-
-      std::stringstream ss(s);
-      int val;
-      char leftover;
-      if (ss >> val && !(ss >> leftover)) {
-        if (val < 1 || val > setup.numSel()) {
-          std::cout << "[!] Out of bounds selected.\n";
-        }
-
-        setup.deleteSelected(val);
-        // The 1-indexedness is fixed in the function
-
-        clearScreen();
-        script(setup);
-        continue;
-      } else {
-        std::cout << "[!] Invalid input2.\n";
-        continue;
-      }
     }
 
     else {

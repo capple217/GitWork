@@ -10,14 +10,17 @@ namespace fs = std::filesystem;
 // for the commit objects
 class Internals {
 public:
-  Internals(const fs::path &path); // This is a git init solution, we can still
-                                   // work on a git clone type of constructor
+  Internals(fs::path &path); // This is a git init solution, we can still
+                             // work on a git clone type of constructor
   void objectify(std::string message); // Here, we store all our files into
                                        // objects after hashing
 
   // Recursive Post order DFS approach to go from most nested to least for
   // directories
   std::string fileOrdering(const fs::path &path);
+
+  // Doesn't simply work, have some allocation issues to settle eventually
+  ~Internals();
 
 private:
   fs::path _dir;
