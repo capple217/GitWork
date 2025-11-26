@@ -46,6 +46,7 @@ Internals::Internals(fs::path &path) : _dir{path} {
 
   // May add more sub-directories here
   _refs = _git / "refs";
+  _refsHeads = _refs / "heads";
   fs::create_directory(_refs);
   fs::create_directory(_refs / "heads");
 
@@ -203,4 +204,27 @@ void Internals::stage() {
 
   file << hash << std::endl;
   _stageFullness = true;
+  file.close();
+}
+
+void Internals::createBranch(std::string name = "main") {
+
+  for (const auto &entry : fs::directory_iterator{_refsHeads}) {
+    if (entry.path().filename() == name) {
+      return;
+    }
+  }
+
+  std::string new_file = name + ".txt";
+  fs::create_directory(_refsHeads / new_file);
+  _branchNames.push_back(name);
+  chooseBranch(name);
+}
+
+// Error checks will be done outside
+// like in main
+void Internals::chooseBranch(fs::path path) {
+
+  std::ofstream file(_headFile, std::ofstream::out | std::ofstream::trunc);
+  file << "ref: " << path.string() << std::endl;
 }
