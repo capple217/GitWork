@@ -22,6 +22,10 @@ public:
   void deleteSelected(size_t idx);
   size_t numSel() const { return _selected.size(); }
 
+  // We keep track of current here to know whether we're
+  // still in the git file
+  bool containsGit() const;
+
 private:
   std::vector<fs::path> _selected; // List of all selected paths
   fs::path _root;                  // Starting path

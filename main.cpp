@@ -11,6 +11,8 @@
 #include <string>
 #include <system_error>
 
+void gitWorker(fs::path &path);
+
 // Need to update main to test blob and SHA
 void clearScreen() { std::cout << "\033[2J\033[1;1H" << std::flush; }
 
@@ -43,6 +45,7 @@ void og_script(FileBrowser &browser) {
 }
 
 fs::path fileExplorer(const fs::path &path) {
+  clearScreen();
   FileBrowser browser(path);
   std::string og_input;
   while (std::getline(std::cin, og_input)) {
@@ -52,6 +55,12 @@ fs::path fileExplorer(const fs::path &path) {
 
     std::transform(t.begin(), t.end(), t.begin(), ::tolower);
 
+    if (browser.containsGit()) {
+      auto p = browser.current();
+      clearScreen();
+      gitWorker(p);
+      continue;
+    }
     if (t == "q") {
       // Breaks code for now
       break;
@@ -65,7 +74,10 @@ fs::path fileExplorer(const fs::path &path) {
           !fs::exists(browser.current())) {
         std::cout << "[!] Invalid path for init.\n";
       }
-      return browser.current();
+      auto p = browser.current();
+      gitWorker(p);
+      clearScreen();
+      continue;
     } else {
       std::stringstream tt(t);
       int t_val;
@@ -88,7 +100,7 @@ fs::path fileExplorer(const fs::path &path) {
   return path;
 }
 
-fs::path gitWorker(fs::path &path) {
+void gitWorker(fs::path &path) {
   FileBrowser setup(path);
   Internals ints(path);
 
@@ -104,6 +116,13 @@ fs::path gitWorker(fs::path &path) {
 
     // normalize to lower-case
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
+
+    if (!setup.containsGit()) {
+      clearScreen();
+      auto p = setup.current();
+      fileExplorer(p);
+      continue;
+    }
 
     if (s == "u") {
       setup.upTree();
@@ -146,20 +165,14 @@ fs::path gitWorker(fs::path &path) {
       }
     }
   }
+
+  fileExplorer(setup.current());
 }
 
 int main() {
   fs::path start =
       fs::current_path(); // Want to eventually update starting location
   fs::path dir = fileExplorer(start);
-
-  std::string input;
-  while (std::getline(std::cin, input)) {
-
-    if (input == "q") { // Leaving mode
-      break;
-    }
-  }
 
   return 0;
 }

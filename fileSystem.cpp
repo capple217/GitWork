@@ -52,12 +52,12 @@ void FileBrowser::reset() { _current = _root; }
 
 void FileBrowser::selectChild(size_t idx) {
 
-  if (!fs::exists(_current) || !fs::is_directory(_current)) {
+  if (!fs::exists(_children[idx]) || !fs::is_directory(_children[idx])) {
     std::cout << "Cannot list children-current is not a directory.\n";
     return;
   }
 
-  if (idx < 0 || idx >= _children.size()) {
+  if (idx >= _children.size()) {
     std::cout << "This value doesn't exist within range\n";
     return;
   }
@@ -87,4 +87,18 @@ void FileBrowser::deleteSelected(size_t idx) {
     return;
   _selected.erase(_selected.begin() + idx - 2);
   // We add 1 since our list is 1-indexed not 0
+}
+
+bool FileBrowser::containsGit() const {
+  if (!fs::exists(_current) && !fs::is_directory(_current)) {
+    return false;
+  }
+
+  for (const auto &entry : fs::directory_iterator{_current}) {
+    if (entry.path().filename() == ".gitwork") {
+      return true;
+    }
+  }
+
+  return false;
 }
