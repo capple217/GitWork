@@ -25,6 +25,7 @@ std::string trim(std::string s) {
 }
 
 void script(FileBrowser &browser) {
+  std::cout << "---- GITWORK ----\n";
   std::cout << "[Q] to quit selection.\n[U] to go up tree.\n"
                "[#] to select file/directory.\n[M] to "
                "save files\n[X] to delete repository.\n\n\n";
@@ -33,6 +34,7 @@ void script(FileBrowser &browser) {
 }
 
 void og_script(FileBrowser &browser) {
+  std::cout << "---- File Explorer ----\n";
   std::cout
       << "Choose path to initialize or return to.\n[Q] to quit selection.\n[U] "
          "to go up tree.\n[#] to select directory.\n[G] to solidify "
@@ -40,16 +42,8 @@ void og_script(FileBrowser &browser) {
   browser.printPath();
 }
 
-int main() {
-  clearScreen();
-  fs::path rootDir = fs::current_path(); // Can add functioality later to have a
-                                         // better start position
-  FileBrowser browser(rootDir);
-
-  fs::path dir = rootDir;
-
-  // Choose init location
-  og_script(browser);
+fs::path fileExplorer(const fs::path &path) {
+  FileBrowser browser(path);
   std::string og_input;
   while (std::getline(std::cin, og_input)) {
     clearScreen();
@@ -60,7 +54,6 @@ int main() {
 
     if (t == "q") {
       // Breaks code for now
-      return 0;
       break;
     } else if (t == "u") {
       browser.upTree();
@@ -72,8 +65,7 @@ int main() {
           !fs::exists(browser.current())) {
         std::cout << "[!] Invalid path for init.\n";
       }
-      dir = browser.current();
-      break;
+      return browser.current();
     } else {
       std::stringstream tt(t);
       int t_val;
@@ -92,22 +84,13 @@ int main() {
     }
   }
 
-  // intentional gap
-  // Temporary
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
-  //
+  og_script(browser);
+  return path;
+}
 
-  // NEW GIT ENVIRONMENT SET UP
-  FileBrowser setup(dir);
-  Internals ints(dir);
+fs::path gitWorker(fs::path &path) {
+  FileBrowser setup(path);
+  Internals ints(path);
 
   // Initial run of file-system
   clearScreen();
@@ -161,6 +144,20 @@ int main() {
       } else {
         std::cout << "[!] Invalid input1.\n";
       }
+    }
+  }
+}
+
+int main() {
+  fs::path start =
+      fs::current_path(); // Want to eventually update starting location
+  fs::path dir = fileExplorer(start);
+
+  std::string input;
+  while (std::getline(std::cin, input)) {
+
+    if (input == "q") { // Leaving mode
+      break;
     }
   }
 
