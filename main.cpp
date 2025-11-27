@@ -90,8 +90,7 @@ fs::path fileExplorer(const fs::path &path) {
 
         browser.selectChild(t_val);
         clearScreen();
-        auto p = browser.current();
-        gitWorker(p);
+        og_script(browser);
       } else {
         std::cout << "[!] Invalid input for file explorer.\n";
       }
