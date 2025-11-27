@@ -46,7 +46,6 @@ void og_script(FileBrowser &browser) {
 }
 
 fs::path fileExplorer(const fs::path &path) {
-  clearScreen();
   FileBrowser browser(path);
   std::string og_input;
   while (std::getline(std::cin, og_input)) {
@@ -64,21 +63,17 @@ fs::path fileExplorer(const fs::path &path) {
     }
 
     if (t == "q") {
-      // Breaks code for now
-      break;
+      return browser.current();
     } else if (t == "u") {
       browser.upTree();
-      clearScreen();
-      og_script(browser);
       continue;
     } else if (t == "g") {
       if (!fs::is_directory(browser.current()) ||
           !fs::exists(browser.current())) {
-        std::cout << "[!] Invalid path for init.\n";
+        std::cout << "[!] Invalid path for init location.\n";
       }
       auto p = browser.current();
       gitWorker(p);
-      clearScreen();
       continue;
     } else {
       std::stringstream tt(t);
@@ -90,25 +85,18 @@ fs::path fileExplorer(const fs::path &path) {
         }
 
         browser.selectChild(t_val);
-        clearScreen();
-        og_script(browser);
       } else {
-        std::cout << "[!] Invalid input init.\n";
+        std::cout << "[!] Invalid input for file explorer.\n";
       }
     }
   }
 
-  og_script(browser);
   return path;
 }
 
 void gitWorker(fs::path &path) {
   FileBrowser setup(path);
   Internals ints(path);
-
-  // Initial run of file-system
-  clearScreen();
-  script(setup);
 
   std::string input;
   while (std::getline(std::cin, input)) {
@@ -120,7 +108,6 @@ void gitWorker(fs::path &path) {
     std::transform(s.begin(), s.end(), s.begin(), ::tolower);
 
     if (!setup.containsGit()) {
-      clearScreen();
       auto p = setup.current();
       fileExplorer(p);
       continue;
@@ -128,13 +115,31 @@ void gitWorker(fs::path &path) {
 
     if (s == "u") {
       setup.upTree();
-      clearScreen();
-      script(setup);
       continue;
-    } else if (s == "x") {
+    }
+    // Currently broken
+    else if (s == "x") {
       ints.~Internals();
-      clearScreen();
       break;
+    }
+
+    // Want to add functionality to exit out of this and other option if we had
+    // a misclick
+    else if (s == "b") {
+      // switch to existing branch
+      ints.printBranches();
+      int b;
+      std::cout << "Pick the index for the branch you want: ";
+      std::cin >> b;
+      ints.chooseBranch(b);
+
+    } else if (s == "n") {
+      // create new branch
+      std::string name;
+      std::cout << "New Branch: ";
+      std::cin >> name;
+      ints.createBranch(name);
+
     }
 
     else if (s == "s") {
@@ -144,7 +149,7 @@ void gitWorker(fs::path &path) {
       // Want to add some more interface dynamics/visuals to show this action
       // was successful
       ints.stage();
-      continue;
+      std::cout << "Staged successful!\n";
     }
 
     else if (s == "m") {
@@ -154,12 +159,10 @@ void gitWorker(fs::path &path) {
       }
       std::string message;
       std::cout << "Write your message: \n";
+      std::cin >> message;
       ints.objectify(message);
-      clearScreen();
-      script(setup);
     } else if (s == "q") {
-
-      break;
+      return;
     }
 
     else {
@@ -173,11 +176,9 @@ void gitWorker(fs::path &path) {
 
         // pick path or file work
         setup.selectChild(val);
-        clearScreen();
-        script(setup);
 
       } else {
-        std::cout << "[!] Invalid input1.\n";
+        std::cout << "[!] Invalid input for gitwork-system.\n";
       }
     }
   }

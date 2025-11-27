@@ -32,6 +32,8 @@ public:
   void newTip(std::string hash);
   void createBranch(std::string name);
   void chooseBranch(fs::path path);
+  void chooseBranch(int idx);
+  void printBranches();
 
 private:
   fs::path _dir;

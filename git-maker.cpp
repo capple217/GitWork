@@ -93,7 +93,8 @@ std::string Internals::fileOrdering(fs::path &path, int idx) {
       if (entry.path().filename() == ".gitwork")
         continue;
       if (entry.is_directory()) {
-        auto sha = fileOrdering(entry.path(), ++idx);
+        auto p = entry.path();
+        auto sha = fileOrdering(p, ++idx);
         temp_file << "tree " << sha << " " << entry.path().filename()
                   << std::endl;
       } else if (entry.is_regular_file()) {
@@ -254,6 +255,15 @@ void Internals::chooseBranch(fs::path path) {
   file.close();
 }
 
+// Overload to use the branchNames vector
+void Internals::chooseBranch(int idx) {
+  if (idx < 0 || idx >= _branchNames.size()) {
+    return;
+  }
+
+  chooseBranch(_branchNames[idx]);
+}
+
 // Whenever we commit something, it is always gonna be at the tip of a branch
 void Internals::newTip(std::string hash) {
   std::ofstream file(_branchCurr, std::ofstream::out | std::ofstream::trunc);
@@ -263,4 +273,11 @@ void Internals::newTip(std::string hash) {
 
   file << hash << std::endl;
   file.close();
+}
+
+void Internals::printBranches() {
+  int idx = 0;
+  for (const auto &branch : _branchNames) {
+    std::cout << idx++ << ": " << branch.filename() << std::endl;
+  }
 }
