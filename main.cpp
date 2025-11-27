@@ -28,10 +28,11 @@ std::string trim(std::string s) {
 
 void script(FileBrowser &browser) {
   std::cout << "---- GITWORK ----\n";
-  std::cout << "[Q] to quit selection.\n[U] to go up tree.\n"
-               "[#] to select file/directory.\n[M] to "
-               "save our staged files\n[X] to delete repository.\n[S] to stage "
-               "changes.\n\n\n";
+  std::cout
+      << "[Q] to quit selection.\n[U] to go up tree.\n"
+         "[#] to select file/directory.\n[M] to "
+         "save our staged files\n[X] to delete repository.\n[S] to stage "
+         "changes.\n[B] to switch branches.\n[N] to create a new branch.\n\n\n";
   browser.printPath();
   std::cout << "\n\n\n";
 }
@@ -48,6 +49,8 @@ void og_script(FileBrowser &browser) {
 fs::path fileExplorer(const fs::path &path) {
   FileBrowser browser(path);
   std::string og_input;
+  clearScreen();
+  og_script(browser);
   while (std::getline(std::cin, og_input)) {
     clearScreen();
     og_script(browser);
@@ -66,6 +69,8 @@ fs::path fileExplorer(const fs::path &path) {
       return browser.current();
     } else if (t == "u") {
       browser.upTree();
+      clearScreen();
+      og_script(browser);
       continue;
     } else if (t == "g") {
       if (!fs::is_directory(browser.current()) ||
@@ -74,7 +79,6 @@ fs::path fileExplorer(const fs::path &path) {
       }
       auto p = browser.current();
       gitWorker(p);
-      continue;
     } else {
       std::stringstream tt(t);
       int t_val;
@@ -85,6 +89,9 @@ fs::path fileExplorer(const fs::path &path) {
         }
 
         browser.selectChild(t_val);
+        clearScreen();
+        auto p = browser.current();
+        gitWorker(p);
       } else {
         std::cout << "[!] Invalid input for file explorer.\n";
       }
@@ -97,6 +104,9 @@ fs::path fileExplorer(const fs::path &path) {
 void gitWorker(fs::path &path) {
   FileBrowser setup(path);
   Internals ints(path);
+
+  clearScreen();
+  script(setup);
 
   std::string input;
   while (std::getline(std::cin, input)) {
@@ -115,7 +125,11 @@ void gitWorker(fs::path &path) {
 
     if (s == "u") {
       setup.upTree();
-      continue;
+
+      if (!setup.containsGit()) {
+        auto p = setup.current();
+        fileExplorer(p);
+      }
     }
     // Currently broken
     else if (s == "x") {
@@ -176,6 +190,8 @@ void gitWorker(fs::path &path) {
 
         // pick path or file work
         setup.selectChild(val);
+        clearScreen();
+        script(setup);
 
       } else {
         std::cout << "[!] Invalid input for gitwork-system.\n";
