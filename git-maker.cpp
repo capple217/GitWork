@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
+#include <string>
 
 /*
  * IF there exists more than 1 .gitwork, we will simply delete all
@@ -53,7 +54,7 @@ Internals::Internals(fs::path &path) : _dir{path} {
   // HEAD
   // TEXT FILE
 
-  _headFile = _git / "HEAD.txt";
+  _headFile = _git / "HEAD";
   std::ofstream output_file(_headFile);
 
   // No need to write in it for now
@@ -63,7 +64,7 @@ Internals::Internals(fs::path &path) : _dir{path} {
   // INDEX
   // TEXT FILE
 
-  _indexFile = _git / "index.txt";
+  _indexFile = _git / "index";
   std::ofstream out_file(_indexFile);
 
   // No need to write in it for now
@@ -76,9 +77,15 @@ Internals::Internals(fs::path &path) : _dir{path} {
 //
 // This methodology is one I interpreted from The Git Parable.
 // Future versions of this program may change this function
-std::string Internals::fileOrdering(const fs::path &path) {
+//
+// Can create a vector later that contains all the gitwork ignores and we can
+// just run that to be ignored
+std::string Internals::fileOrdering(fs::path &path, int idx) {
   // Create temp file
-  std::string file_path = path.string() + "data.text";
+  // And ensure it's temp name is unique
+  // We can develop more comprehensive and unique names later
+  std::string num = std::to_string(idx);
+  fs::path file_path = path / num;
   std::ofstream temp_file(file_path);
   if (temp_file.is_open()) {
     for (const auto &entry : fs::directory_iterator(path)) {
@@ -86,12 +93,13 @@ std::string Internals::fileOrdering(const fs::path &path) {
       if (entry.path().filename() == ".gitwork")
         continue;
       if (entry.is_directory()) {
-        auto sha = fileOrdering(entry.path());
+        auto sha = fileOrdering(entry.path(), ++idx);
         temp_file << "tree " << sha << " " << entry.path().filename()
                   << std::endl;
-      } else {
-        // need to make sure this is path for the file
-        std::string source = entry.path().filename().string();
+      } else if (entry.is_regular_file()) {
+        // need to read all the contents of the files
+        // for now, we only accept "regular files"
+        std::string source = entry.path().filename();
         std::ifstream file(source);
         if (file.is_open()) { // Kinda need this error check
           std::string file_contents(std::istreambuf_iterator<char>(file),
@@ -104,11 +112,13 @@ std::string Internals::fileOrdering(const fs::path &path) {
           // objects folder if there already exists this file, we can skip this
           // step
 
-          std::string new_file = hash + ".txt";
+          std::string new_file = hash;
 
           fs::path new_dest(_objects / new_file);
           fs::copy_file(entry.path(), new_dest,
                         fs::copy_options::skip_existing);
+
+          file.close();
         }
       }
     }
@@ -126,7 +136,7 @@ std::string Internals::fileOrdering(const fs::path &path) {
   std::string file_contents(std::istreambuf_iterator<char>(file), {});
   auto hash = sha1_hex(file_contents);
 
-  std::string new_file = hash + ".txt";
+  std::string new_file = hash;
 
   fs::path new_dest(_objects / new_file);
   fs::copy_file(file_path, new_dest, fs::copy_options::skip_existing);
@@ -142,8 +152,7 @@ std::string Internals::fileOrdering(const fs::path &path) {
 // THen take the commit message and create the unique commit object and also
 // store in objects
 //
-// This version does NOT have a staging area so we just use _dir, but in updated
-// versions, we will incorporate that and update this
+// objectify is simply commit
 void Internals::objectify(std::string message) {
 
   std::ifstream index(_indexFile);
@@ -155,15 +164,12 @@ void Internals::objectify(std::string message) {
   std::time_t now_c = std::chrono::system_clock::to_time_t(now);
 
   // final file
-  std::string file_path = _dir / "message.txt";
+  std::string file_path = _dir / "message";
   std::ofstream temp_file(file_path);
   if (!temp_file.is_open()) {
     std::cout << "Error in opening commit message file.\n";
   }
 
-  temp_file << "Time: " << std::ctime(&now_c) << std::endl;
-  temp_file << "Hash: " << hash << std::endl;
-  temp_file << "Message: " << message << std::endl;
   if (!_rootCommit) {
     std::ifstream tree(_branchCurr);
     if (!tree.is_open()) {
@@ -172,6 +178,9 @@ void Internals::objectify(std::string message) {
     std::string treeHash(std::istreambuf_iterator<char>(tree), {});
     temp_file << "Parent: " << treeHash << std::endl;
   }
+  temp_file << "Time: " << std::ctime(&now_c) << std::endl;
+  temp_file << "Hash: " << hash << std::endl;
+  temp_file << "Message: " << message << std::endl;
 
   // We dont have others like tree hash set up but will also update that soon
   // enough
@@ -186,10 +195,8 @@ void Internals::objectify(std::string message) {
   std::string file_contents(std::istreambuf_iterator<char>(file), {});
   auto new_name = sha1_hex(file_contents);
 
-  std::string new_file = new_name + ".txt";
-
-  fs::path new_dest(_objects / new_file);
-  fs::copy_file(file_path, new_file, fs::copy_options::skip_existing);
+  fs::path new_dest(_objects / new_name);
+  fs::copy_file(file_path, new_dest, fs::copy_options::skip_existing);
 
   file.close();
   fs::remove(file_path);
@@ -206,7 +213,7 @@ Internals::~Internals() { fs::remove_all(_git); }
 // Any existing stages are currently forcefully overwritten
 void Internals::stage() {
 
-  auto hash = fileOrdering(_dir);
+  auto hash = fileOrdering(_dir, 0);
   std::ofstream file(_indexFile, std::ofstream::out | std::ofstream::trunc);
   if (!file.is_open()) {
     std::cerr << "Unable to open file to stage.\n";
@@ -219,14 +226,14 @@ void Internals::stage() {
 
 void Internals::createBranch(std::string name = "main") {
 
+  // if name already exists, then we do nothing
   for (const auto &entry : fs::directory_iterator{_refsHeads}) {
     if (entry.path().filename() == name) {
       return;
     }
   }
 
-  std::string new_file = name + ".txt";
-  std::string path = _refsHeads / new_file;
+  fs::path path = _refsHeads / name;
   std::ofstream file(path);
   if (file.is_open())
     file.close();
@@ -239,6 +246,9 @@ void Internals::createBranch(std::string name = "main") {
 void Internals::chooseBranch(fs::path path) {
 
   std::ofstream file(_headFile, std::ofstream::out | std::ofstream::trunc);
+  if (!file.is_open()) {
+    std::cout << "Error in choosing branch.\n";
+  }
   file << path.string() << std::endl;
   _branchCurr = path;
   file.close();

@@ -17,7 +17,7 @@ public:
 
   // Recursive Post order DFS approach to go from most nested to least for
   // directories
-  std::string fileOrdering(const fs::path &path);
+  std::string fileOrdering(fs::path &path, int idx);
 
   // Doesn't simply work, have some allocation issues to settle eventually
   ~Internals();
